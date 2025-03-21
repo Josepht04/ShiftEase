@@ -1,0 +1,9 @@
+/* .Performance {} */
+.graph{
+    margin: 75px;
+    border-radius: 15px;
+    border:2px solid black;
+    padding: 10px 50px;
+}
+
+/* @import "tailwindcss"; */

@@ -1,0 +1,67 @@
+.Navbar {
+    margin: 0.2rem;
+    text-decoration: none;
+    background-color: #41644A;
+    border-radius: 12px;
+    box-shadow: 5px 5px 5px rgb(80, 80, 80);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height:50px;
+}
+
+
+.title{
+    font-size: 1.2rem;
+    padding-left:14px;          
+    font-weight: bold;
+    font-family: 'Oswald';
+    color: #f2eeeb;
+    display: flex;
+    justify-content: flex-start;
+}
+
+
+.title a{
+    text-decoration: none;
+    color:inherit;
+}
+
+
+.login{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-right: 1rem;
+}
+
+
+
+.login a{
+    background-color:#2483ff;
+    color: white;
+    border-radius: 8px;
+    border:1px solid black;
+    font-size: 15px;
+    text-decoration: none;
+    font-family: 'Spectral';
+    align-items: center;
+    width:40px;
+    display: flex;
+    justify-content: center;
+    padding: 3px;
+}
+
+.signOutButton {
+    padding: 5px 10px;
+    background-color: #f87171;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .signOutButton:hover {
+    background-color: #ef4444;
+  }

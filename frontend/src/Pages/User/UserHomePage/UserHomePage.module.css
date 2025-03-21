@@ -1,0 +1,133 @@
+.UserHomePage{
+  margin:80px;
+}
+
+/* Container for the whole schedule */
+.scheduleContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Row for day names */
+.daysRow {
+    display: flex;
+    justify-content: center;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 18px;
+}
+
+/* Individual day headers */
+.dayHeader {
+    width: 150px;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Row for date boxes */
+.boxesRow {
+    display: flex;
+    justify-content: center;
+    gap: 0.1px;
+}
+
+/* Individual box */
+.box {
+    width: 150px;
+    height: 150px;
+    background-color: rgb(214, 218, 220);
+    border: 1px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    position: relative;
+}
+
+/* Sunday Highlight in Red */
+.sundayHighlight {
+    background-color: rgba(255, 37, 37, 0.615);
+    color: black;
+}
+
+/* Today's Date Border */
+.todayHighlight {
+    background-color: rgb(157, 155, 179);
+    border: 4px solid black;
+}
+
+/* Positioning the Date to Bottom Right */
+.date {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 20px;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-weight: bold;
+}
+
+
+/* Buttons */
+.btns{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    margin: 50px;
+    gap:50px
+}
+
+.btn{
+    height:70px;
+    width:200px;
+    border-radius: 13px;
+    font-size: 18px;    
+    background-color: rgb(21, 116, 240);
+    font-weight:bold;
+    color: white;
+}
+
+/* button hover effect */
+.btn:hover{
+    border:2px solid black;
+    box-shadow:     20px 10px 20px rgba(80, 80, 80, 80);
+    background-color: rgb(35, 21, 240);
+}
+
+
+/*  box hover effects */
+.box:hover{
+    background-color: rgb(186, 181, 244);
+    border: 2px solid blueviolet;
+    color: black;
+}
+
+
+.tooltip {
+    position: absolute;
+     bottom: 110%; /*Position the tooltip above the box */
+    /* left:150%;  Position the tooltip to the left of the box */
+    /* right: 75%; Position the tooltip to the right of the box */
+    transform: translateX(-50%);
+    background-color: black;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    white-space: nowrap;
+    font-size: 12px;
+    /* visibility: hidden; Hide by default */
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    z-index: 1;
+  }
+  
+  .box:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .tooltip:onhover{
+    visibility: visible;
+    opacity: 1;
+  }

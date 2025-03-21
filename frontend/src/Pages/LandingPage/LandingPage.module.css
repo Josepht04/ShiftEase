@@ -1,0 +1,52 @@
+/* body{
+    background-image: url('../../Assets/Images/Landingbg.jpg');
+} */
+
+.info{
+    margin:90px;
+}
+
+.row1 {
+    margin: 30px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap:40px;
+}
+
+.row1 h1{
+    margin-bottom: 3px;;
+    font-size: 8rem;
+    font-weight:700;
+    font-family: 'Lucida Sans';
+    color: black;
+}
+
+.row1 h3{
+    display: flex;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 400;
+    font-family: 'Spectral';
+}
+
+ h3{
+    font-size: 2rem;
+    font-weight: 400;
+    font-family: 'Spectral';
+}
+
+.infoimg1{
+    width: 800px;
+    height: 100%;
+    border-radius: 10px;
+}   
+
+.row2{
+    margin: 30px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap:40px;
+}
+
