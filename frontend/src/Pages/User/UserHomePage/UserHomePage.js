@@ -7,14 +7,14 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 
 const UserHomePage = () => {
   const currentdate = new Date();
-  const { currentUser } = useContext(AuthContext); 
+  const { currentUser } = useContext(AuthContext);
   const [userData, setUserData] = useState(null);
-  const [shifts, setShifts] = useState({}); // Store shifts by date
+  const [shifts, setShifts] = useState({});
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser) {
-        const userInfo = await getUserDataByEmail(currentUser.email);  
+        const userInfo = await getUserDataByEmail(currentUser.email);
         setUserData(userInfo);
       }
     };
@@ -26,15 +26,20 @@ const UserHomePage = () => {
       if (currentUser) {
         try {
           const timetableRef = collection(db, "timetables");
-
-          const q = query(timetableRef, where("userId", "==", currentUser.uid));
-          const querySnapshot = await getDocs(q);
+          const querySnapshot = await getDocs(timetableRef);
 
           const shiftData = {};
           querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const shiftDate = new Date(data.fromDate).toDateString();
-            shiftData[shiftDate] = data.shift;
+            if (data.shifts) {
+              const { shifts } = data;
+              Object.keys(shifts).forEach(shiftType => {
+                if (shifts[shiftType].includes(currentUser.uid)) {
+                  shiftData[data.date] = shiftData[data.date] || [];
+                  shiftData[data.date].push(shiftType);
+                }
+              });
+            }
           });
 
           setShifts(shiftData);
@@ -46,22 +51,21 @@ const UserHomePage = () => {
     fetchShifts();
   }, [currentUser]);
 
+
   if (!currentUser) {
     return <div>Loading... Please log in.</div>;
   }
 
   if (!userData) {
-    return <div>Loading user data...</div>;  // Waiting for Firestore data
+    return <div>Loading user data...</div>;
   }
 
   const displayName = userData?.displayName || "User";
 
-  // Find the most recent Monday
   const startOfWeek = new Date(currentdate);
-  const dayOffset = currentdate.getDay() === 0 ? -6 : 1 - currentdate.getDay(); 
+  const dayOffset = currentdate.getDay() === 0 ? -6 : 1 - currentdate.getDay();
   startOfWeek.setDate(currentdate.getDate() + dayOffset);
 
-  // Generate the week from Monday to Sunday
   const days = Array.from({ length: 7 }, (_, i) => {
     const newDate = new Date(startOfWeek);
     newDate.setDate(startOfWeek.getDate() + i);
@@ -70,7 +74,7 @@ const UserHomePage = () => {
       day: newDate.toLocaleDateString("en-us", { weekday: "long" }),
       month: newDate.toLocaleDateString("en-us", { month: "long" }),
       year: newDate.getFullYear(),
-      dateString: newDate.toDateString(), // For shift lookup
+      dateString: newDate.toISOString().split('T')[0],
     };
   });
 
@@ -92,15 +96,13 @@ const UserHomePage = () => {
           {days.map((day) => (
             <div
               key={day.date}
-              className={`${styles.box} 
-                ${day.day === "Sunday" ? styles.sundayHighlight : ""} 
-                ${day.date === currentdate.getDate() ? styles.todayHighlight : ""}`}
+              className={`${styles.box} ${day.day === "Sunday" ? styles.sundayHighlight : ""} ${day.date === currentdate.getDate() ? styles.todayHighlight : ""}`}
             >
               <div className={styles.shift}>
-                {shifts[day.dateString] || "No Shift"}  {/* Display shift if exists */}
+                {shifts[day.dateString] ? shifts[day.dateString].join(", ") : "No Shift"}
                 <span className={styles.date}>{day.date}</span>
                 <div className={styles.tooltip}>
-                  This is {day.day} <br /> {day.date}<sup>th</sup> {day.month} {day.year}
+                  This is {day.day} <br/> {day.date}<sup>th</sup> {day.month} {day.year}
                 </div>
               </div>
             </div>
