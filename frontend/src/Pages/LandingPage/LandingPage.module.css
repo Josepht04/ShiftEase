@@ -1,17 +1,16 @@
-/* body{
-    background-image: url('../../Assets/Images/Landingbg.jpg');
-} */
 
 .info{
     margin:90px;
+    gap:50px;
 }
 
 .row1 {
-    margin: 30px;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: center;
     gap:40px;
+    margin-bottom: 300px;
+    position:sticky;
 }
 
 .row1 h1{
@@ -37,16 +36,16 @@
 }
 
 .infoimg1{
-    width: 800px;
+    width: 600px;
     height: 100%;
     border-radius: 10px;
 }   
 
 .row2{
-    margin: 30px;
     display: flex;
     flex-direction: row;
     justify-content: center;
+    align-items: center;
     gap:40px;
 }
 

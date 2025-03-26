@@ -12,7 +12,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     }
 
     if (!user) {
-        return <Navigate to={adminOnly ? '/admin/login' : '/login'} />;
+        return <Navigate to={adminOnly ? '/admin/login' : '/info'} />;
     }
 
     // If this route is for admin only, check if the user is in the "admins" collection

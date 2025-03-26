@@ -1,5 +1,5 @@
 .UserHomePage{
-  margin:80px;
+  margin:90px;
 }
 
 /* Container for the whole schedule */
@@ -63,7 +63,7 @@
     bottom: 5px;
     right: 5px;
     font-size: 20px;
-    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-family:'Franklin Gothic Medium', 'Arial Narrow';
     font-weight: bold;
 }
 
@@ -106,9 +106,8 @@
 
 .tooltip {
     position: absolute;
-     bottom: 110%; /*Position the tooltip above the box */
-    /* left:150%;  Position the tooltip to the left of the box */
-    /* right: 75%; Position the tooltip to the right of the box */
+    bottom: 110%;
+    left:50%;
     transform: translateX(-50%);
     background-color: black;
     color: white;
@@ -116,7 +115,6 @@
     border-radius: 5px;
     white-space: nowrap;
     font-size: 12px;
-    /* visibility: hidden; Hide by default */
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
     z-index: 1;
@@ -127,7 +125,95 @@
     opacity: 1;
   }
 
-  .tooltip:onhover{
-    visibility: visible;
-    opacity: 1;
+  
+  .swapform{
+    background-color: white;
+    padding: 20px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap:20px;
+  }
+
+
+
+  .swapform h2,label{
+    font-family:'Lucida Sans';
+  }
+
+  .swapform h2{
+    font-size: 40px;
+  }
+
+  .swapform input{
+    border-radius: 5px;
+    border:1px solid black;
+  }
+
+  .swapform button{
+    background-color: rgb(21, 116, 240);
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+  }
+
+  .swapform button:hover{
+    background-color: rgb(35, 21, 240);
+  }
+
+  .swapdets{
+    gap:20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+
+
+
+
+
+  .leaveform{
+    background-color: white;
+    padding: 20px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap:20px;
+  }
+
+
+
+  .leaveform h2,label{
+    font-family:'Lucida Sans';
+  }
+
+  .leaveform h2{
+    font-size: 40px;
+  }
+
+  .leaveform input{
+    border-radius: 5px;
+    border:1px solid black;
+  }
+
+  .leaveform button{
+    background-color: rgb(21, 116, 240);
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+  }
+
+  .leaveform button:hover{
+    background-color: rgb(35, 21, 240);
+  }
+
+  .leaverebox{
+    width: 100%;
+    min-height: 100px; /* Set an initial height */
+    max-height: 300px; /* Prevent excessive growth */
+    resize: none; /* Disable manual resizing */
+    overflow-y: auto;
   }

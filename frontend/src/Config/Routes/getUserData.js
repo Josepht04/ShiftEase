@@ -1,9 +1,10 @@
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
-export const getUserDataByEmail = async (email) => {
+export const getUserDataByEmail = async (email,dbLoc) => {
+  dbLoc==="admin"?dbLoc="admins":dbLoc="users";
   try {
-    const usersRef = collection(db, "users");
+    const usersRef = collection(db, dbLoc);
     const q = query(usersRef, where("email", "==", email));
     const querySnapshot = await getDocs(q);
 

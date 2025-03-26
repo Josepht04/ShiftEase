@@ -3,18 +3,40 @@ import styles from "./UserHomePage.module.css";
 import { AuthContext } from "../../../Config/Routes/AuthContext";
 import { getUserDataByEmail } from "../../../Config/Routes/getUserData";
 import { db } from "../../../Config/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { ArrowLeftRight } from "lucide-react";
+
+
 
 const UserHomePage = () => {
   const currentdate = new Date();
   const { currentUser } = useContext(AuthContext);
   const [userData, setUserData] = useState(null);
   const [shifts, setShifts] = useState({});
+  const [swapRequestform, setswapRequestform] = useState(false);
+  const [leaveRequestform, setleaveRequestform] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedShift, setSelectedShift] = useState("");
+  const [availableUsers, setAvailableUsers] = useState([]);
+
+  const handleSwapRequest = () => {
+    setswapRequestform(true);
+    setleaveRequestform(false);
+    setSelectedDate("");
+    setSelectedShift("");
+  }
+
+  const handleLeaveRequest = () => {
+    setleaveRequestform(true);
+    setswapRequestform(false);
+  }
+
+  const dbLoc = "user"
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser) {
-        const userInfo = await getUserDataByEmail(currentUser.email);
+        const userInfo = await getUserDataByEmail(currentUser.email, dbLoc);
         setUserData(userInfo);
       }
     };
@@ -51,13 +73,57 @@ const UserHomePage = () => {
     fetchShifts();
   }, [currentUser]);
 
+  const fetchAvailableUsers = async (selectedDate, selectedShift) => {
+    try {
+      const timetableRef = collection(db, "timetables");
+      const timetableQuery = query(timetableRef, where("date", "==", selectedDate));
+      const timetableSnapshot = await getDocs(timetableQuery);
+
+      const usersToFetch = [];
+
+      timetableSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.shifts) {
+          Object.keys(data.shifts).forEach((shiftType) => {
+            if (shiftType !== selectedShift && data.shifts[shiftType].length > 0) {
+              data.shifts[shiftType].forEach((userId) => {
+                usersToFetch.push({ userId, shiftType });
+              });
+            }
+          });
+        }
+      });
+
+      // Fetch user details from the 'users' collection
+      const userDetailsPromises = usersToFetch.map(async ({ userId, shiftType }) => {
+        const userRef = collection(db, "users");
+        const userDocSnapshot = await getDocs(query(userRef, where("__name__", "==", userId)));
+
+        if (!userDocSnapshot.empty) {
+          const userDoc = userDocSnapshot.docs[0];
+          const userData = userDoc.data();
+          return { userId, displayName: userData.displayName || "Unknown User", shiftType };
+        }
+        return null;
+      });
+
+      const userDetails = await Promise.all(userDetailsPromises);
+      const filteredUsers = userDetails.filter(user => user !== null);
+
+      setAvailableUsers(filteredUsers);
+
+    } catch (error) {
+      console.error("Error fetching available users: ", error);
+    }
+  };
+
 
   if (!currentUser) {
     return <div>Loading... Please log in.</div>;
   }
 
   if (!userData) {
-    return <div>Loading user data...</div>;
+    return <div>Loading user data...<br /> Try Loging in</div>;
   }
 
   const displayName = userData?.displayName || "User";
@@ -96,13 +162,13 @@ const UserHomePage = () => {
           {days.map((day) => (
             <div
               key={day.date}
-              className={`${styles.box} ${day.day === "Sunday" ? styles.sundayHighlight : ""} ${day.date === currentdate.getDate() ? styles.todayHighlight : ""}`}
+              className={`${styles.box} ${day.day === "Sunday" || day.dateString === "No Shift" ? styles.sundayHighlight : ""} ${day.date === currentdate.getDate() ? styles.todayHighlight : ""}`}
             >
               <div className={styles.shift}>
                 {shifts[day.dateString] ? shifts[day.dateString].join(", ") : "No Shift"}
                 <span className={styles.date}>{day.date}</span>
                 <div className={styles.tooltip}>
-                  This is {day.day} <br/> {day.date}<sup>th</sup> {day.month} {day.year}
+                  This is {day.day} <br /> {day.date}<sup>th</sup> {day.month} {day.year}
                 </div>
               </div>
             </div>
@@ -111,9 +177,185 @@ const UserHomePage = () => {
 
         <div className={styles.btns}>
           <button className={styles.btn}>Download Schedule</button>
-          <button className={styles.btn}>Swap Shifts</button>
-          <button className={styles.btn}>Leave of Absence Request</button>
+          <button className={styles.btn} onClick={handleSwapRequest}>Swap Shifts</button>
+          <button className={styles.btn} onClick={handleLeaveRequest}>Leave of Absence Request</button>
         </div>
+
+        {swapRequestform && (
+          <div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+            
+                if (!selectedDate) {
+                  alert("Please select a date.");
+                  return;
+                }
+            
+                const selected = new Date(selectedDate);
+                const currentDate = new Date();
+                currentDate.setHours(0, 0, 0, 0);
+                selected.setHours(0, 0, 0, 0);
+            
+                if (selected.getTime() < currentDate.getTime()) {
+                  alert("Swap requests cannot be made for the past.");
+                  return;
+                }
+            
+                const selectedUserId = e.target.swapShifts.value;
+                const selectedUser = availableUsers.find(user => user.userId === selectedUserId);
+                const formattedDate = selected.toISOString().split('T')[0]; // Format date as "YYYY-MM-DD"
+            
+                try {
+                  // Reference to the swaps collection
+                  const swapsRef = collection(db, "swaps");
+            
+                  // Check if a swap request already exists for the same user and date
+                  const existingSwapQuery = query(
+                    swapsRef,
+                    where("requestBy", "==", currentUser.uid),
+                    where("date", "==", selectedDate)  // Use formatted date for comparison
+                  );
+            
+                  const existingSwapSnapshot = await getDocs(existingSwapQuery);
+            
+                  if (!existingSwapSnapshot.empty) {
+                    // A swap request already exists
+                    const existingSwap = existingSwapSnapshot.docs[0].data();
+                    alert(`You have already made a swap request on this date. Status: ${existingSwap.status}`);
+                    return;
+                  }
+
+                  // Save the swap request to the 'swaps' collection
+                  await addDoc(swapsRef, {
+                    requestBy: currentUser.uid,
+                    requestTo: selectedUserId,
+                    date: selectedDate,
+                    requestingUserShift: selectedShift,
+                    selectedUserShift: selectedUser.shiftType,
+                    status: "Pending",
+                  });
+            
+                  alert("Swap request sent successfully!");
+                  setswapRequestform(false);
+            
+                } catch (error) {
+                  console.log("Error sending swap request: ", error);
+                  alert("Failed to send swap request. Try again.");
+                }
+              }}
+              className={styles.swapform}
+            >
+              <h2>Swap Shifts</h2>
+              <div>
+                <label>Date:</label>
+                <input
+                  type="date"
+                  onChange={async (e) => {
+                    const selectedDate = e.target.value;
+                    setSelectedDate(selectedDate);
+
+                    if (shifts[selectedDate]) {
+                      const selectedShift = shifts[selectedDate].join(", ");
+                      setSelectedShift(selectedShift);
+
+                      // Fetch available users for swapping
+                      await fetchAvailableUsers(selectedDate, selectedShift);
+                    } else {
+                      setSelectedShift("No Shift");
+                      setAvailableUsers([]);
+                    }
+                  }}
+                />
+              </div>  
+
+              {selectedDate && (
+                <div className={styles.swapdets}>
+                  <span>{selectedShift}</span> <ArrowLeftRight size={20} />
+                  <select name="swapShifts" id="swapShifts">
+                    {availableUsers.length > 0 ? (
+                      availableUsers.map((user, index) => (
+                        <option key={index} value={user.userId}>
+                          {user.displayName} - Shift: {user.shiftType}
+                        </option>
+                      ))
+                    ) : (
+                      <option>No available users for swap</option>
+                    )}
+                  </select>
+                </div>
+              )}
+
+              <button type="submit">Send Swap Request</button>
+            </form>
+          </div>
+        )}
+
+        {leaveRequestform && (
+          <div>
+            
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+
+                if (!selectedDate) {
+                  alert("Please select a date.");
+                  return;
+                }
+
+                const selected = new Date(selectedDate);
+                const currentDate = new Date();
+                currentDate.setHours(0, 0, 0, 0);  // Set current date to midnight for comparison
+                selected.setHours(0, 0, 0, 0);    // Set selected date to midnight for comparison
+
+                if (selected.getTime() <= currentDate.getTime()) { // Compare dates using getTime()
+                  alert("Leave requests must be made at least 1 day in advance.");
+                  return;
+                }
+
+                const reason = e.target.reason.value;
+
+                try {
+                  const leavesRef = collection(db, "leaves");
+
+                  await addDoc(leavesRef, {
+                    userId: currentUser.uid,
+                    date: selectedDate,
+                    reason: reason || "No reason provided",
+                    status: "Pending",
+                  });
+
+                  alert("Leave request sent successfully!");
+                  setleaveRequestform(false);
+                } catch (error) {
+                  console.log("Error sending leave request: ", error);
+                  alert("Failed to send leave request. Try again.");
+                }
+              }}
+              className={styles.leaveform}
+            >
+              <h2>Leave Request Form</h2>
+              <div>
+                <label>Date:</label>
+                <input
+                  type="date"
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  required
+                  className={styles.leavereqbox}
+                />
+              </div>
+
+              <div>
+                <label>Reason:</label>
+                <textarea name="reason" placeholder="If any"></textarea>
+              </div>
+
+              <button type="submit">Send Leave Request</button>
+            </form>
+          </div>
+        )}
+
+
       </div>
     </div>
   );
