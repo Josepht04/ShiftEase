@@ -55,6 +55,7 @@
 .todayHighlight {
     background-color: rgb(157, 155, 179);
     border: 4px solid black;
+    z-index: 1;
 }
 
 /* Positioning the Date to Bottom Right */
@@ -217,3 +218,5 @@
     resize: none; /* Disable manual resizing */
     overflow-y: auto;
   }
+
+  

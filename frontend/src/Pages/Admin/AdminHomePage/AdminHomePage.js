@@ -5,7 +5,7 @@ import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { db } from "../../../Config/firebase";
 import { AuthContext } from "../../../Config/Routes/AuthContext";
 import { getUserDataByEmail } from "../../../Config/Routes/getUserData";
-import { collection, doc, setDoc, getDoc , updateDoc , writeBatch , getDocs, query, where } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, updateDoc, writeBatch, getDocs, query, where } from "firebase/firestore";
 
 
 const AdminHomePage = () => {
@@ -21,6 +21,9 @@ const AdminHomePage = () => {
   const [activeTab, setActiveTab] = useState(1);
   const [swapRequests, setSwapRequests] = useState([]);
   const [leaves, setLeaves] = useState([]);
+  const [shifts, setShifts] = useState({});
+  const [users, setUsers] = useState({});
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser) {
@@ -115,46 +118,46 @@ const AdminHomePage = () => {
 
   const handleLeaveUpdate = async (leaveId, newStatus) => {
     if (!leaveId) return;
-  
+
     try {
       const leaveRef = doc(db, "leaves", leaveId);
-  
+
       // ✅ Update leave status in Firestore
       await updateDoc(leaveRef, { status: newStatus });
-  
+
       if (newStatus === "Accepted") {
         // Fetch leave data to get userId & leave date
         const leaveDoc = await getDoc(leaveRef);
         if (!leaveDoc.exists()) return;
-  
+
         const { userId, date } = leaveDoc.data();
-  
+
         // ✅ Query timetable for the specific date
         const timetableRef = collection(db, "timetables");
         const q = query(timetableRef, where("date", "==", date));
         const timetableSnapshot = await getDocs(q);
-  
+
         if (timetableSnapshot.empty) {
           console.log("No timetable found for the given leave date.");
           return;
         }
-  
+
         const batch = writeBatch(db);
-  
+
         // ✅ Process timetable shifts & remove userId
         timetableSnapshot.forEach((doc) => {
           const timetableData = doc.data();
           const updatedShifts = { ...timetableData.shifts };
-  
+
           Object.keys(updatedShifts).forEach((shift) => {
             if (Array.isArray(updatedShifts[shift])) {
               updatedShifts[shift] = updatedShifts[shift].filter(id => id !== userId);
             }
           });
-  
+
           batch.update(doc.ref, { shifts: updatedShifts });
         });
-  
+
         await batch.commit();
         console.log(`Leave Granted on ${date}.`);
         forceReload();
@@ -166,7 +169,7 @@ const AdminHomePage = () => {
       console.error("Error updating leave status:", error);
     }
   };
-  
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -198,80 +201,233 @@ const AdminHomePage = () => {
       alert("Please select both From and To dates.");
       return;
     }
-
+  
     try {
       const usersSnapshot = await getDocs(collection(db, "users"));
-      const users = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-
-      const shiftsSnapshot = await getDocs(collection(db, "shifts"));
-      const shifts = shiftsSnapshot.docs.map(doc => doc.data().name);
-
-      if (users.length === 0 || shifts.length === 0) {
-        alert("Users or Shifts data is missing!");
+      let users = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+  
+      const shifts = ["Morning", "Evening", "Night"];
+  
+      if (users.length === 0) {
+        alert("No users found in the database!");
         return;
       }
-
-      const totalShifts = shifts.length;
-      const totalUsers = users.length;
+  
+      const minUsersPerShift = 3;
       const maxUsersPerShift = 4;
-
-      const currentDate = new Date(fromDate);
-      const endDate = new Date(toDate);
-
-      while (currentDate <= endDate) {
-        const dayString = currentDate.toISOString().split('T')[0];
-
+  
+      // Track user shift count to ensure fairness
+      let userShiftCounts = {};
+      users.forEach(user => {
+        userShiftCounts[user.uid] = 0;
+      });
+  
+      // Get start and end of the current month
+      const currentdate = new Date();
+      const startOfMonth = new Date(currentdate.getFullYear(), currentdate.getMonth(), 1);
+      const endOfMonth = new Date(currentdate.getFullYear(), currentdate.getMonth() + 1, 0);
+  
+      // Generate days array
+      const days = Array.from({ length: endOfMonth.getDate() }, (_, i) => {
+        const newDate = new Date(startOfMonth);
+        newDate.setDate(startOfMonth.getDate() + i);
+        const dateString = newDate.toISOString().split("T")[0];
+  
+        return {
+          date: newDate.getDate(),
+          day: newDate.toLocaleDateString("en-us", { weekday: "long" }),
+          month: newDate.toLocaleDateString("en-us", { month: "long" }),
+          year: newDate.getFullYear(),
+          dateString: dateString,
+        };
+      });
+  
+      for (let day of days) {
+        const dayString = day.dateString;
+  
         // Check if timetable already exists for the day
         const q = query(collection(db, "timetables"), where("date", "==", dayString));
         const existingTimetableSnapshot = await getDocs(q);
-
+  
         if (!existingTimetableSnapshot.empty) {
           console.log(`Skipping ${dayString} as it already exists.`);
-          currentDate.setDate(currentDate.getDate() + 1);
           continue;
         }
-
-        if (currentDate.getDay() === 0) { // If it's Sunday
+  
+        // If it's Sunday, mark it as a rest day
+        if (day.day === "Sunday") {
           const timetableDocRef = doc(collection(db, "timetables"));
-          await setDoc(timetableDocRef, { date: dayString, shifts: { morning: "Off Day", evening: "Off Day", night: "Off Day" } });
-          console.log(`Marked ${dayString} as an Off Day.`);
-          currentDate.setDate(currentDate.getDate() + 1);
+          await setDoc(timetableDocRef, { date: dayString, shifts: "Sunday" });
+          console.log(`Marked ${dayString} as Sunday.`);
           continue;
         }
-
-        const shiftsForDay = {};
-        shifts.forEach(shift => shiftsForDay[shift] = []);
-
-        for (let i = 0; i < totalUsers; i++) {
-          const userIndex = (i + currentDate.getDate()) % totalUsers;
-          const user = users[userIndex];
-          const shiftIndex = i % totalShifts;
-          const shiftName = shifts[shiftIndex];
-
-          if (shiftsForDay[shiftName].length < maxUsersPerShift) {
-            shiftsForDay[shiftName].push(user.uid);
+  
+        let shiftsForDay = { Morning: [], Evening: [], Night: [] };
+  
+        // Shuffle users randomly for fair distribution
+        let shuffledUsers = [...users].sort(() => Math.random() - 0.5);
+        
+        // Assign users to shifts fairly
+        for (let shift of shifts) {
+          let shiftUsers = [];
+  
+          while (shiftUsers.length < minUsersPerShift && shuffledUsers.length > 0) {
+            let user = shuffledUsers.shift(); // Use shift() instead of pop() to maintain order
+            if (user) {
+              shiftUsers.push(user.uid);
+              userShiftCounts[user.uid]++;
+            }
           }
+  
+          // Add additional users if needed (up to maxUsersPerShift)
+          while (shiftUsers.length < maxUsersPerShift && shuffledUsers.length > 0) {
+            let user = shuffledUsers.shift();
+            if (user) {
+              shiftUsers.push(user.uid);
+              userShiftCounts[user.uid]++;
+            }
+          }
+  
+          shiftsForDay[shift] = shiftUsers;
         }
-
+  
+        // Ensure all users get fair "No Shift" days
+        users.forEach(user => {
+          if (!Object.values(shiftsForDay).flat().includes(user.uid)) {
+            userShiftCounts[user.uid] = Math.max(0, userShiftCounts[user.uid] - 1);
+          }
+        });
+  
         const timetableDocRef = doc(collection(db, "timetables"));
         await setDoc(timetableDocRef, { date: dayString, shifts: shiftsForDay });
-
-        currentDate.setDate(currentDate.getDate() + 1);
+  
+        console.log(`Generated shifts for ${dayString}`);
       }
-
+  
       alert("Timetable generated successfully!");
     } catch (error) {
       console.error("Error generating timetable:", error);
       alert("Error generating timetable: " + error.message);
     }
   };
+  
+  
+
+
+
+  useEffect(() => {
+    const fetchShifts = async () => {
+      const querySnapshot = await getDocs(collection(db, "timetables"));
+      const shiftData = {};
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        shiftData[data.date] = {
+          morning: data.shifts?.Morning || [],
+          evening: data.shifts?.Evening || [],
+          night: data.shifts?.Night || []
+        };
+      });
+
+      setShifts(shiftData);
+    };
+
+    fetchShifts();
+  }, []);
+
+  // Fetch all users and store displayNames in state
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      const usersData = {};
+
+      usersSnapshot.forEach((doc) => {
+        usersData[doc.id] = doc.data().displayName; // Store user displayName by UID
+      });
+
+      setUsers(usersData);
+    };
+
+    fetchUsers();
+  }, []);
+
+  // Get month dates
+  const currentdate = new Date();
+  const startOfMonth = new Date(currentdate.getFullYear(), currentdate.getMonth(), 1);
+  const endOfMonth = new Date(currentdate.getFullYear(), currentdate.getMonth() + 1, 0);
+
+  // Generate days array for the month
+  const days = Array.from({ length: endOfMonth.getDate() }, (_, i) => {
+    const newDate = new Date(startOfMonth);
+    newDate.setDate(startOfMonth.getDate() + i);
+    const dateString = newDate.toISOString().split("T")[0];
+
+    return {
+      date: newDate.getDate(),
+      day: newDate.toLocaleDateString("en-us", { weekday: "long" }),
+      month: newDate.toLocaleDateString("en-us", { month: "long" }),
+      year: newDate.getFullYear(),
+      dateString: dateString,
+      shifts: shifts[dateString] || { morning: [], evening: [], night: [] }
+    };
+  });
+
+
+  // Convert UID to displayName for each shift
+  const getDisplayNames = (uids) => uids.map((uid) => users[uid] || uid);
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 1:
         return (
           <div>
-            <h2>View Timetable</h2>
+            <h1>This Month's Schedule</h1>
+            <div className={styles.scheduleContainer}>
+              <div className={styles.daysRow}>
+                {days.slice(0, 7).map((day, index) => (
+                  <div key={index} className={styles.dayHeader}>
+                    {day.day}
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.boxesRow}>
+                {days.map((day) => (
+                  <div
+                    key={day.dateString}
+                    className={`${styles.box} ${day.day === "Sunday" ? styles.holidayHighlight : ""} 
+                  ${day.date === currentdate.getDate() ? styles.todayHighlight : ""}`}
+                  >
+                    <div className={styles.shift}>
+                      {day.shifts.morning.length > 0 && (
+                        <div>
+                          <strong>Morning:</strong> {getDisplayNames(day.shifts.morning).join(", ")}
+                        </div>
+                      )}
+                      {day.shifts.evening.length > 0 && (
+                        <div>
+                          <strong>Evening:</strong> {getDisplayNames(day.shifts.evening).join(", ")}
+                        </div>
+                      )}
+                      {day.shifts.night.length > 0 && (
+                        <div>
+                          <strong>Night:</strong> {getDisplayNames(day.shifts.night).join(", ")}
+                        </div>
+                      )}
+                      {day.shifts.morning.length === 0 &&
+                        day.shifts.evening.length === 0 &&
+                        day.shifts.night.length === 0 && <div>No Shift</div>}
+
+                      <span className={styles.boxdate}>{day.date}</span>
+                      <div className={styles.tooltip}>
+                        This is {day.day} <br /> {day.date}
+                        <sup>th</sup> {day.month} {day.year}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         );
       case 2:
@@ -285,8 +441,8 @@ const AdminHomePage = () => {
                   <div><strong>Date:</strong> {leave.date}</div>
                   <div><strong>User:</strong> {leave.userName}</div>
                   <div><strong>Reason:</strong> {leave.reason}</div>
-                  {leave.status != "Pending" &&(<div className={`${leave.status === "Accepted" ? styles.accept
-                      : styles.decline}`}>
+                  {leave.status !== "Pending" && (<div className={`${leave.status === "Accepted" ? styles.accept
+                    : styles.decline}`}>
                     <strong>{leave.status}</strong></div>)}
 
                   {/* ✅ Render buttons for PENDING leaves */}
@@ -391,6 +547,7 @@ const AdminHomePage = () => {
             </form>
           </div>
         );
+      default: setActiveTab(1);
     }
   };
 

@@ -188,19 +188,19 @@ select {
     border: 1px solid orange
 }
 
-.leaveTable{
-display: grid;
-grid-template-columns: repeat(4,auto);
+.leaveTable {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
 }
 
-.leaveCard{
+.leaveCard {
     background-color: whitesmoke;
     padding: 30px;
     border-radius: 12px;
     border: 1px solid #ccc;
     display: inline-block;
     width: fit-content;
-    width:m ax-content;
+    width: m ax-content;
     max-width: max-content;
     align-items: center;
     display: flex;
@@ -210,26 +210,114 @@ grid-template-columns: repeat(4,auto);
     margin: 20px;
 }
 
-.leavebtn{
+.leavebtn {
     display: flex;
-    gap:20px;
+    gap: 20px;
 }
 
-.btns{
+.btns {
     background-color: #007bff;
-    border:1px solid #ccc;
-    border-radius: 5px ;
+    border: 1px solid #ccc;
+    border-radius: 5px;
     color: white;
-    width:fit-content;
-    padding:2px 10px;
+    width: fit-content;
+    padding: 2px 10px;
 
 }
 
-.btns:hover{
+.btns:hover {
     background-color: rgb(35, 21, 240);
 }
 
-.leaveReqcard{
+
+.scheduleContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Row for day names */
+.daysRow {
+    display: flex;
+    justify-content: center;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 18px;
+}
+
+/* Individual day headers */
+.dayHeader {
+    width: 175px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.boxesRow {
+    display: flex;
+    justify-content: center;
+    gap: 0.1px;
     display: grid;
-    grid-template-columns: repeat(4,auto);
+    grid-template-columns: repeat(7,auto);
+}
+
+/* Individual box */
+.box {
+    width: 150px;
+    height: 150px;
+    background-color: rgb(214, 218, 220);
+    border: 1px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    position: relative;
+    padding: 10px;
+}
+
+/* Sunday Highlight in Red */
+.holidayHighlight {
+    background-color: rgba(255, 37, 37, 0.615);
+    color: black;
+}
+
+/* Today's Date Border */
+.todayHighlight {
+    background-color: rgb(157, 155, 179);
+    border: 4px solid black;
+}
+
+/* Positioning the Date to Bottom Right */
+.boxdate {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 20px;
+    font-family:'Franklin Gothic Medium', 'Arial Narrow';
+    font-weight: bold;
+}
+
+.tooltip {
+    position: absolute;
+    bottom: 110%;
+    left:50%;
+    transform: translateX(-50%);
+    background-color: black;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    white-space: nowrap;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    z-index: 1;
+  }
+  
+  .box:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+  .box:hover{
+    background-color: rgb(186, 181, 244);
+    border: 2px solid blueviolet;
+    color: black;
 }

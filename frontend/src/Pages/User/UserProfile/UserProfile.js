@@ -225,7 +225,10 @@ const UserProfile = () => {
 
                   {/* Date & Status */}
                   <div className={styles.date}><strong>Date:</strong> {swap.date}</div>
-                  <div className={styles.date}><strong>Status:</strong> {swap.status}</div>
+                  <div className={`${swap.status === "Pending" ? styles.pending
+                    : swap.status === "Accepted" ? styles.accept
+                      : styles.decline}`}>
+                    <strong>{swap.status}</strong></div>
                   {swap.status === "Pending" ? (<div>
                     <div className={styles.swapbtn}>
                       <button type="button" className={styles.btns} onClick={() => handleSwapUpdate(swap.id, "Accepted")}>
@@ -248,17 +251,20 @@ const UserProfile = () => {
           {leaveRequests.length === 0 ? (
             <p>No leave requests found.</p>
           ) : (
-            <div>
+            <div className={styles.leaveReqcard}>
               {leaveRequests.map((leave) => (
-                <div key={leave.id} className={styles.leaveReqcard}>
+                <div key={leave.id} >
                   <div className={styles.leaveinfo}>
                     <div><strong>Date:</strong> {leave.date}</div>
                     <div><strong>Reason:</strong> {leave.reason}</div>
-                    <div><strong>Status:</strong> {leave.status}</div>
+                    <div className={`${leave.status === "Pending" ? styles.pending
+                      : leave.status === "Accepted" ? styles.accept
+                        : styles.decline}`}>
+                      <strong>{leave.status}</strong></div>
                   </div>
                 </div>
               ))}
-              </div>
+            </div>
           )}
         </div>;
       case 3:
@@ -283,20 +289,20 @@ const UserProfile = () => {
         <div className={styles.pfpContainer}>
           {userData?.photoURL ? (
             <img
-            src={userData.photoURL}
-            alt={userData?.displayName
-              ? userData.displayName
+              src={userData.photoURL}
+              alt={userData?.displayName
+                ? userData.displayName
                   .split(" ")
                   .map((name) => name[0].toUpperCase())
                   .join("")
-              : "U"}
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = ""; // Fallback to empty if image fails
-            }}
-            className={styles.pfp}
-          />
-          
+                : "U"}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = ""; // Fallback to empty if image fails
+              }}
+              className={styles.pfp}
+            />
+
           ) : (
             <div className={styles.initials}>
               {userData?.displayName?.split(" ").map(name => name[0].toUpperCase()).join("") || "U"}
