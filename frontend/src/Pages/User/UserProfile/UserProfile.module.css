@@ -69,7 +69,7 @@
     background-color: whitesmoke;
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 5px 5px 5px gray;
+    border: 1px solid #ccc;
     display: inline-block;
     width: fit-content;
     max-width: max-content;
@@ -104,6 +104,7 @@
   }
   .btns{
     background-color: #007bff;
+    border:1px solid #ccc;
     border-radius: 5px ;
     color: white;
 

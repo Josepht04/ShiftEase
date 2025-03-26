@@ -248,17 +248,17 @@ const UserProfile = () => {
           {leaveRequests.length === 0 ? (
             <p>No leave requests found.</p>
           ) : (
-            <ul>
+            <div>
               {leaveRequests.map((leave) => (
-                <li key={leave.id}>
+                <div key={leave.id} className={styles.leaveReqcard}>
                   <div className={styles.leaveinfo}>
                     <div><strong>Date:</strong> {leave.date}</div>
                     <div><strong>Reason:</strong> {leave.reason}</div>
                     <div><strong>Status:</strong> {leave.status}</div>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+              </div>
           )}
         </div>;
       case 3:
@@ -283,11 +283,20 @@ const UserProfile = () => {
         <div className={styles.pfpContainer}>
           {userData?.photoURL ? (
             <img
-              src={userData.photoURL}
-              alt={userData.displayName}
-              onError={(e) => { e.target.onerror = null; e.target.src = ""; }}
-              className={styles.pfp}
-            />
+            src={userData.photoURL}
+            alt={userData?.displayName
+              ? userData.displayName
+                  .split(" ")
+                  .map((name) => name[0].toUpperCase())
+                  .join("")
+              : "U"}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = ""; // Fallback to empty if image fails
+            }}
+            className={styles.pfp}
+          />
+          
           ) : (
             <div className={styles.initials}>
               {userData?.displayName?.split(" ").map(name => name[0].toUpperCase()).join("") || "U"}
