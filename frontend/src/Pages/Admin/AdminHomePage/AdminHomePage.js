@@ -159,7 +159,7 @@ const AdminHomePage = () => {
         });
 
         await batch.commit();
-        console.log(`Leave Granted on ${date}.`);
+        alert(`Leave Granted on ${date}.`);
         forceReload();
       } else {
         alert(`Leave Denied`);

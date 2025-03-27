@@ -18,12 +18,24 @@ const UserHomePage = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedShift, setSelectedShift] = useState("");
   const [availableUsers, setAvailableUsers] = useState([]);
+  const [monthView, setMonthView] = useState(false);
+  const [time, setTime] = useState("Week");
 
   const handleSwapRequest = () => {
     setswapRequestform(true);
     setleaveRequestform(false);
     setSelectedDate("");
     setSelectedShift("");
+  }
+
+  const handletimetable = () => {
+    setTime("Month");
+    setMonthView(true);
+    setTimeout(() => {
+      setTime("Week");
+      setMonthView(false);
+    }, 200000);
+
   }
 
   const handleLeaveRequest = () => {
@@ -128,235 +140,293 @@ const UserHomePage = () => {
 
   const displayName = userData?.displayName || "User";
 
-  const startOfWeek = new Date(currentdate);
-  const dayOffset = currentdate.getDay() === 0 ? -6 : 1 - currentdate.getDay();
-  startOfWeek.setDate(currentdate.getDate() + dayOffset);
+  let days = [];
 
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const newDate = new Date(startOfWeek);
-    newDate.setDate(startOfWeek.getDate() + i);
-    return {
-      date: newDate.getDate(),
-      day: newDate.toLocaleDateString("en-us", { weekday: "long" }),
-      month: newDate.toLocaleDateString("en-us", { month: "long" }),
-      year: newDate.getFullYear(),
-      dateString: newDate.toISOString().split('T')[0],
-    };
-  });
+  if (!monthView) {
+    // Calculate the start of the week (Monday as start)
+    const startOfWeek = new Date(currentdate);
+    const dayOffset = currentdate.getDay() === 0 ? -6 : 1 - currentdate.getDay();
+    startOfWeek.setDate(currentdate.getDate() + dayOffset);
+
+    // Generate array for 7 days of the week
+    days = Array.from({ length: 7 }, (_, i) => {
+      const newDate = new Date(startOfWeek);
+      newDate.setDate(startOfWeek.getDate() + i);
+
+      return {
+        date: newDate.getDate(),
+        day: newDate.toLocaleDateString("en-us", { weekday: "long" }),
+        month: newDate.toLocaleDateString("en-us", { month: "long" }),
+        year: newDate.getFullYear(),
+        dateString: newDate.toISOString().split("T")[0],
+      };
+    });
+  } else {
+    // Monthly View
+    const startOfMonth = new Date(currentdate.getFullYear(), currentdate.getMonth(), 1);
+    const endOfMonth = new Date(currentdate.getFullYear(), currentdate.getMonth() + 1, 0);
+
+    // Generate array for all days of the month
+    days = Array.from({ length: endOfMonth.getDate() }, (_, i) => {
+      const newDate = new Date(startOfMonth);
+      newDate.setDate(startOfMonth.getDate() + i);
+      const dateString = newDate.toISOString().split("T")[0];
+
+      return {
+        date: newDate.getDate(),
+        day: newDate.toLocaleDateString("en-us", { weekday: "long" }),
+        month: newDate.toLocaleDateString("en-us", { month: "long" }),
+        year: newDate.getFullYear(),
+        dateString: dateString,
+        shifts: shifts?.[dateString] || ["No Shift"],
+      };
+    });
+  }
 
   return (
     <div className={styles.UserHomePage}>
-      <h1>Hello {displayName},<br />Welcome Back</h1>
-      <h2 className={styles.heading}>This Week's Schedule</h2>
+      <div className={styles.monthView} onClick={handletimetable}>
+        <h1>Hello {displayName},<br />Welcome Back</h1>
+        <h2 className={styles.heading}>This {time}'s Schedule</h2>
+      </div>
 
-      <div className={styles.scheduleContainer}>
-        <div className={styles.daysRow}>
-          {days.map((day) => (
-            <div key={day.date} className={styles.dayHeader}>
-              {day.day}
-            </div>
-          ))}
+
+
+      {!monthView ? (
+        // Weekly View
+        <div className={styles.scheduleContainer}>
+          <div className={styles.daysRow}>
+            {days.map((day) => (
+              <div key={day.dateString} className={styles.dayHeader}>
+                {day.day}
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.boxesRow}>
+            {days.map((day) => (
+              <div
+                key={day.dateString}
+                className={`${styles.box} ${day.day === "Sunday" || !shifts[day.dateString] ? styles.sundayHighlight : ""}
+                            ${day.dateString === currentdate.toISOString().split("T")[0] ? styles.todayHighlight : ""}`}
+              >
+                <div className={styles.shift}>
+                  {shifts?.[day.dateString]?.join(", ") || "Off Duty"}
+                  <span className={styles.date}>{day.date}</span>
+                  <div className={styles.tooltip}>
+                    This is {day.day} <br /> {day.date}
+                    <sup>th</sup> {day.month} {day.year}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-
-        <div className={styles.boxesRow}>
-          {days.map((day) => (
-            <div
-              key={day.date}
-              className={`${styles.box} ${day.day === "Sunday" || day.dateString === "No Shift" ? styles.sundayHighlight : ""} ${day.date === currentdate.getDate() ? styles.todayHighlight : ""}`}
-            >
-              <div className={styles.shift}>
-                {shifts[day.dateString] ? shifts[day.dateString].join(", ") : "No Shift"}
+      ) : (
+        // Monthly View
+        <div className={styles.monthContainer}>
+          <div className={styles.monthGrid}>
+            {days.map((day) => (
+              <div key={day.date}
+              className={`${styles.box} ${day.day === "Sunday" || !shifts[day.dateString] ? styles.sundayHighlight : ""}
+              ${day.dateString === currentdate.toISOString().split("T")[0] ? styles.todayHighlight : ""}`}>
+                {shifts?.[day.dateString]?.join(", ") || "Off Duty"}
                 <span className={styles.date}>{day.date}</span>
                 <div className={styles.tooltip}>
-                  This is {day.day} <br /> {day.date}<sup>th</sup> {day.month} {day.year}
+                  This is {day.day} <br /> {day.date}
+                  <sup>th</sup> {day.month} {day.year}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        <div className={styles.btns}>
-          <button className={styles.btn}>Download Schedule</button>
-          <button className={styles.btn} onClick={handleSwapRequest}>Swap Shifts</button>
-          <button className={styles.btn} onClick={handleLeaveRequest}>Leave of Absence Request</button>
-        </div>
-
-        {swapRequestform && (
-          <div>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-            
-                if (!selectedDate) {
-                  alert("Please select a date.");
-                  return;
-                }
-            
-                const selected = new Date(selectedDate);
-                const currentDate = new Date();
-                currentDate.setHours(0, 0, 0, 0);
-                selected.setHours(0, 0, 0, 0);
-            
-                if (selected.getTime() < currentDate.getTime()) {
-                  alert("Swap requests cannot be made for the past.");
-                  return;
-                }
-            
-                const selectedUserId = e.target.swapShifts.value;
-                const selectedUser = availableUsers.find(user => user.userId === selectedUserId);
-                const formattedDate = selected.toISOString().split('T')[0]; // Format date as "YYYY-MM-DD"
-            
-                try {
-                  // Reference to the swaps collection
-                  const swapsRef = collection(db, "swaps");
-            
-                  // Check if a swap request already exists for the same user and date
-                  const existingSwapQuery = query(
-                    swapsRef,
-                    where("requestBy", "==", currentUser.uid),
-                    where("date", "==", selectedDate)  // Use formatted date for comparison
-                  );
-            
-                  const existingSwapSnapshot = await getDocs(existingSwapQuery);
-            
-                  if (!existingSwapSnapshot.empty) {
-                    // A swap request already exists
-                    const existingSwap = existingSwapSnapshot.docs[0].data();
-                    alert(`You have already made a swap request on this date. Status: ${existingSwap.status}`);
-                    return;
-                  }
-
-                  // Save the swap request to the 'swaps' collection
-                  await addDoc(swapsRef, {
-                    requestBy: currentUser.uid,
-                    requestTo: selectedUserId,
-                    date: selectedDate,
-                    requestingUserShift: selectedShift,
-                    selectedUserShift: selectedUser.shiftType,
-                    status: "Pending",
-                  });
-            
-                  alert("Swap request sent successfully!");
-                  setswapRequestform(false);
-            
-                } catch (error) {
-                  console.log("Error sending swap request: ", error);
-                  alert("Failed to send swap request. Try again.");
-                }
-              }}
-              className={styles.swapform}
-            >
-              <h2>Swap Shifts</h2>
-              <div>
-                <label>Date:</label>
-                <input
-                  type="date"
-                  onChange={async (e) => {
-                    const selectedDate = e.target.value;
-                    setSelectedDate(selectedDate);
-
-                    if (shifts[selectedDate]) {
-                      const selectedShift = shifts[selectedDate].join(", ");
-                      setSelectedShift(selectedShift);
-
-                      // Fetch available users for swapping
-                      await fetchAvailableUsers(selectedDate, selectedShift);
-                    } else {
-                      setSelectedShift("No Shift");
-                      setAvailableUsers([]);
-                    }
-                  }}
-                />
-              </div>  
-
-              {selectedDate && (
-                <div className={styles.swapdets}>
-                  <span>{selectedShift}</span> <ArrowLeftRight size={20} />
-                  <select name="swapShifts" id="swapShifts">
-                    {availableUsers.length > 0 ? (
-                      availableUsers.map((user, index) => (
-                        <option key={index} value={user.userId}>
-                          {user.displayName} - Shift: {user.shiftType}
-                        </option>
-                      ))
-                    ) : (
-                      <option>No available users for swap</option>
-                    )}
-                  </select>
-                </div>
-              )}
-
-              <button type="submit">Send Swap Request</button>
-            </form>
+            ))}
           </div>
-        )}
-
-        {leaveRequestform && (
-          <div>
-            
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-
-                if (!selectedDate) {
-                  alert("Please select a date.");
-                  return;
-                }
-
-                const selected = new Date(selectedDate);
-                const currentDate = new Date();
-                currentDate.setHours(0, 0, 0, 0);  // Set current date to midnight for comparison
-                selected.setHours(0, 0, 0, 0);    // Set selected date to midnight for comparison
-
-                if (selected.getTime() <= currentDate.getTime()) { // Compare dates using getTime()
-                  alert("Leave requests must be made at least 1 day in advance.");
-                  return;
-                }
-
-                const reason = e.target.reason.value;
-
-                try {
-                  const leavesRef = collection(db, "leaves");
-
-                  await addDoc(leavesRef, {
-                    userId: currentUser.uid,
-                    date: selectedDate,
-                    reason: reason || "No reason provided",
-                    status: "Pending",
-                  });
-
-                  alert("Leave request sent successfully!");
-                  setleaveRequestform(false);
-                } catch (error) {
-                  console.log("Error sending leave request: ", error);
-                  alert("Failed to send leave request. Try again.");
-                }
-              }}
-              className={styles.leaveform}
-            >
-              <h2>Leave Request Form</h2>
-              <div>
-                <label>Date:</label>
-                <input
-                  type="date"
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  required
-                  className={styles.leavereqbox}
-                />
-              </div>
-
-              <div>
-                <label>Reason:</label>
-                <textarea name="reason" placeholder="If any"></textarea>
-              </div>
-
-              <button type="submit">Send Leave Request</button>
-            </form>
-          </div>
-        )}
+        </div>
+      )}
 
 
+
+
+
+      <div className={styles.btns}>
+        <button className={styles.btn}>Download Schedule</button>
+        <button className={styles.btn} onClick={handleSwapRequest}>Swap Shifts</button>
+        <button className={styles.btn} onClick={handleLeaveRequest}>Leave of Absence Request</button>
       </div>
+
+      {swapRequestform && (
+        <div>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+
+              if (!selectedDate) {
+                alert("Please select a date.");
+                return;
+              }
+
+              const selected = new Date(selectedDate);
+              const currentDate = new Date();
+              currentDate.setHours(0, 0, 0, 0);
+              selected.setHours(0, 0, 0, 0);
+
+              if (selected.getTime() < currentDate.getTime()) {
+                alert("Swap requests cannot be made for the past.");
+                return;
+              }
+
+              const selectedUserId = e.target.swapShifts.value;
+              const selectedUser = availableUsers.find(user => user.userId === selectedUserId);
+              const formattedDate = selected.toISOString().split('T')[0]; // Format date as "YYYY-MM-DD"
+
+              try {
+                // Reference to the swaps collection
+                const swapsRef = collection(db, "swaps");
+
+                // Check if a swap request already exists for the same user and date
+                const existingSwapQuery = query(
+                  swapsRef,
+                  where("requestBy", "==", currentUser.uid),
+                  where("date", "==", selectedDate)  // Use formatted date for comparison
+                );
+
+                const existingSwapSnapshot = await getDocs(existingSwapQuery);
+
+                if (!existingSwapSnapshot.empty) {
+                  // A swap request already exists
+                  const existingSwap = existingSwapSnapshot.docs[0].data();
+                  alert(`You have already made a swap request on this date. Status: ${existingSwap.status}`);
+                  return;
+                }
+
+                // Save the swap request to the 'swaps' collection
+                await addDoc(swapsRef, {
+                  requestBy: currentUser.uid,
+                  requestTo: selectedUserId,
+                  date: selectedDate,
+                  requestingUserShift: selectedShift,
+                  selectedUserShift: selectedUser.shiftType,
+                  status: "Pending",
+                });
+
+                alert("Swap request sent successfully!");
+                setswapRequestform(false);
+
+              } catch (error) {
+                console.log("Error sending swap request: ", error);
+                alert("Failed to send swap request. Try again.");
+              }
+            }}
+            className={styles.swapform}
+          >
+            <h2>Swap Shifts</h2>
+            <div>
+              <label>Date:</label>
+              <input
+                type="date"
+                onChange={async (e) => {
+                  const selectedDate = e.target.value;
+                  setSelectedDate(selectedDate);
+
+                  if (shifts[selectedDate]) {
+                    const selectedShift = shifts[selectedDate].join(", ");
+                    setSelectedShift(selectedShift);
+
+                    // Fetch available users for swapping
+                    await fetchAvailableUsers(selectedDate, selectedShift);
+                  } else {
+                    setSelectedShift("No Shift");
+                    setAvailableUsers([]);
+                  }
+                }}
+              />
+            </div>
+
+            {selectedDate && (
+              <div className={styles.swapdets}>
+                <span>{selectedShift}</span> <ArrowLeftRight size={20} />
+                <select name="swapShifts" id="swapShifts">
+                  {availableUsers.length > 0 ? (
+                    availableUsers.map((user, index) => (
+                      <option key={index} value={user.userId}>
+                        {user.displayName} - Shift: {user.shiftType}
+                      </option>
+                    ))
+                  ) : (
+                    <option>No available users for swap</option>
+                  )}
+                </select>
+              </div>
+            )}
+
+            <button type="submit">Send Swap Request</button>
+          </form>
+        </div>
+      )}
+
+      {leaveRequestform && (
+        <div>
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+
+              if (!selectedDate) {
+                alert("Please select a date.");
+                return;
+              }
+
+              const selected = new Date(selectedDate);
+              const currentDate = new Date();
+              currentDate.setHours(0, 0, 0, 0);  // Set current date to midnight for comparison
+              selected.setHours(0, 0, 0, 0);    // Set selected date to midnight for comparison
+
+              if (selected.getTime() <= currentDate.getTime()) { // Compare dates using getTime()
+                alert("Leave requests must be made at least 1 day in advance.");
+                return;
+              }
+
+              const reason = e.target.reason.value;
+
+              try {
+                const leavesRef = collection(db, "leaves");
+
+                await addDoc(leavesRef, {
+                  userId: currentUser.uid,
+                  date: selectedDate,
+                  reason: reason || "No reason provided",
+                  status: "Pending",
+                });
+
+                alert("Leave request sent successfully!");
+                setleaveRequestform(false);
+              } catch (error) {
+                console.log("Error sending leave request: ", error);
+                alert("Failed to send leave request. Try again.");
+              }
+            }}
+            className={styles.leaveform}
+          >
+            <h2>Leave Request Form</h2>
+            <div>
+              <label>Date:</label>
+              <input
+                type="date"
+                onChange={(e) => setSelectedDate(e.target.value)}
+                required
+                className={styles.leavereqbox}
+              />
+            </div>
+
+            <div>
+              <label>Reason:</label>
+              <textarea name="reason" placeholder="If any"></textarea>
+            </div>
+
+            <button type="submit">Send Leave Request</button>
+          </form>
+        </div>
+      )}
+
+
     </div>
   );
 };
