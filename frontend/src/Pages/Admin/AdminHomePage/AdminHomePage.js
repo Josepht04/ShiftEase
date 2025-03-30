@@ -116,52 +116,71 @@ const AdminHomePage = () => {
     window.location.reload();
   };
 
+
   const handleLeaveUpdate = async (leaveId, newStatus) => {
     if (!leaveId) return;
 
     try {
       const leaveRef = doc(db, "leaves", leaveId);
 
-      // ✅ Update leave status in Firestore
-      await updateDoc(leaveRef, { status: newStatus });
 
       if (newStatus === "Accepted") {
-        // Fetch leave data to get userId & leave date
-        const leaveDoc = await getDoc(leaveRef);
-        if (!leaveDoc.exists()) return;
+        try {
+          // ✅ Fetch leave data from local state
+          const leaveData = leaves.find((leave) => leave.id === leaveId);
+          if (!leaveData) {
+            console.error("Leave data not found in state.");
+            return;
+          }
 
-        const { userId, date } = leaveDoc.data();
+          const { userId, date } = leaveData;
 
-        // ✅ Query timetable for the specific date
-        const timetableRef = collection(db, "timetables");
-        const q = query(timetableRef, where("date", "==", date));
-        const timetableSnapshot = await getDocs(q);
+          // ✅ Validate userId and leaveDate
+          if (!userId || !date) {
+            console.log("Invalid leave data: userId or leaveDate missing.");
+            return;
+          }
 
-        if (timetableSnapshot.empty) {
-          console.log("No timetable found for the given leave date.");
-          return;
-        }
+          // ✅ Query timetable for the specific date
+          const timetableRef = collection(db, "timetables");
+          const q = query(timetableRef, where("date", "==", date));
+          const timetableSnapshot = await getDocs(q);
 
-        const batch = writeBatch(db);
+          if (timetableSnapshot.empty) {
+            console.log(`No timetable found for leave date: ${date}`);
+            return;
+          }
+          const batch = writeBatch(db); // ✅ Initialize write batch
 
-        // ✅ Process timetable shifts & remove userId
-        timetableSnapshot.forEach((doc) => {
-          const timetableData = doc.data();
-          const updatedShifts = { ...timetableData.shifts };
+          // ✅ Process timetable shifts & remove userId
+          timetableSnapshot.forEach((doc) => {
+            const { shifts } = doc.data();
+            if (!shifts) return; // Skip update if no shifts
 
-          Object.keys(updatedShifts).forEach((shift) => {
-            if (Array.isArray(updatedShifts[shift])) {
-              updatedShifts[shift] = updatedShifts[shift].filter(id => id !== userId);
-            }
+            const updatedShifts = Object.fromEntries(
+              Object.entries(shifts).map(([shift, users]) => [
+                shift,
+                Array.isArray(users) ? users.filter((id) => id !== userId) : users,
+              ])
+            );
+
+            // ✅ Add update to batch
+            batch.update(doc.ref, { shifts: updatedShifts });
           });
 
-          batch.update(doc.ref, { shifts: updatedShifts });
-        });
+          // ✅ Update leave status in the batch
+          batch.update(doc(db, "leaves", leaveId), { status: newStatus });
 
-        await batch.commit();
-        alert(`Leave Granted on ${date}.`);
-        forceReload();
-      } else {
+          // ✅ Commit batch write
+          await batch.commit();
+
+          alert(`Leave Granted`);
+          forceReload();
+        } catch (error) {
+          console.log("Error processing leave acceptance:", error);
+        }
+      }
+      else {
         alert(`Leave Denied`);
         forceReload();
       }
@@ -201,38 +220,38 @@ const AdminHomePage = () => {
       alert("Please select both From and To dates.");
       return;
     }
-  
+
     try {
       const usersSnapshot = await getDocs(collection(db, "users"));
       let users = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-  
+
       const shifts = ["Morning", "Evening", "Night"];
-  
+
       if (users.length === 0) {
         alert("No users found in the database!");
         return;
       }
-  
+
       const minUsersPerShift = 3;
       const maxUsersPerShift = 4;
-  
+
       // Track user shift count to ensure fairness
       let userShiftCounts = {};
       users.forEach(user => {
         userShiftCounts[user.uid] = 0;
       });
-  
+
       // Get start and end of the current month
       const currentdate = new Date();
       const startOfMonth = new Date(currentdate.getFullYear(), currentdate.getMonth(), 1);
       const endOfMonth = new Date(currentdate.getFullYear(), currentdate.getMonth() + 1, 0);
-  
+
       // Generate days array
       const days = Array.from({ length: endOfMonth.getDate() }, (_, i) => {
         const newDate = new Date(startOfMonth);
         newDate.setDate(startOfMonth.getDate() + i);
         const dateString = newDate.toISOString().split("T")[0];
-  
+
         return {
           date: newDate.getDate(),
           day: newDate.toLocaleDateString("en-us", { weekday: "long" }),
@@ -241,19 +260,19 @@ const AdminHomePage = () => {
           dateString: dateString,
         };
       });
-  
+
       for (let day of days) {
         const dayString = day.dateString;
-  
+
         // Check if timetable already exists for the day
         const q = query(collection(db, "timetables"), where("date", "==", dayString));
         const existingTimetableSnapshot = await getDocs(q);
-  
+
         if (!existingTimetableSnapshot.empty) {
           console.log(`Skipping ${dayString} as it already exists.`);
           continue;
         }
-  
+
         // If it's Sunday, mark it as a rest day
         if (day.day === "Sunday") {
           const timetableDocRef = doc(collection(db, "timetables"));
@@ -261,16 +280,16 @@ const AdminHomePage = () => {
           console.log(`Marked ${dayString} as Sunday.`);
           continue;
         }
-  
+
         let shiftsForDay = { Morning: [], Evening: [], Night: [] };
-  
+
         // Shuffle users randomly for fair distribution
         let shuffledUsers = [...users].sort(() => Math.random() - 0.5);
-        
+
         // Assign users to shifts fairly
         for (let shift of shifts) {
           let shiftUsers = [];
-  
+
           while (shiftUsers.length < minUsersPerShift && shuffledUsers.length > 0) {
             let user = shuffledUsers.shift(); // Use shift() instead of pop() to maintain order
             if (user) {
@@ -278,7 +297,7 @@ const AdminHomePage = () => {
               userShiftCounts[user.uid]++;
             }
           }
-  
+
           // Add additional users if needed (up to maxUsersPerShift)
           while (shiftUsers.length < maxUsersPerShift && shuffledUsers.length > 0) {
             let user = shuffledUsers.shift();
@@ -287,31 +306,31 @@ const AdminHomePage = () => {
               userShiftCounts[user.uid]++;
             }
           }
-  
+
           shiftsForDay[shift] = shiftUsers;
         }
-  
+
         // Ensure all users get fair "No Shift" days
         users.forEach(user => {
           if (!Object.values(shiftsForDay).flat().includes(user.uid)) {
             userShiftCounts[user.uid] = Math.max(0, userShiftCounts[user.uid] - 1);
           }
         });
-  
+
         const timetableDocRef = doc(collection(db, "timetables"));
         await setDoc(timetableDocRef, { date: dayString, shifts: shiftsForDay });
-  
+
         console.log(`Generated shifts for ${dayString}`);
       }
-  
+
       alert("Timetable generated successfully!");
     } catch (error) {
       console.error("Error generating timetable:", error);
       alert("Error generating timetable: " + error.message);
     }
   };
-  
-  
+
+
 
 
 
@@ -436,32 +455,40 @@ const AdminHomePage = () => {
             {leaves.length === 0 ? (
               <p>No leave requests available.</p>
             ) : (
-              leaves.map((leave) => (
-                <div key={leave.id} className={styles.leaveCard}>
-                  <div><strong>Date:</strong> {leave.date}</div>
-                  <div><strong>User:</strong> {leave.userName}</div>
-                  <div><strong>Reason:</strong> {leave.reason}</div>
-                  {leave.status !== "Pending" && (<div className={`${leave.status === "Accepted" ? styles.accept
-                    : styles.decline}`}>
-                    <strong>{leave.status}</strong></div>)}
-
-                  {/* ✅ Render buttons for PENDING leaves */}
-                  {leave.status === "Pending" && (
-                    <div className={styles.leavebtn}>
-                      <button type="button" className={styles.btns} onClick={() => handleLeaveUpdate(leave.id, "Accepted")}>
-                        Accept
-                      </button>
-                      <button type="button" className={styles.btns} onClick={() => handleLeaveUpdate(leave.id, "Declined")}>
-                        Decline
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))
+              leaves.map((leave) => {
+                // ✅ Compute next day for each leave
+                const leaveDate = new Date(leave.date);
+                leaveDate.setDate(leaveDate.getDate() + 1);
+                const nextDay = leaveDate.toISOString().split("T")[0];
+        
+                return (
+                  <div key={leave.id} className={styles.leaveCard}>
+                    <div><strong>Date:</strong> {nextDay}</div>
+                    <div><strong>User:</strong> {leave.userName}</div>
+                    <div><strong>Reason:</strong> {leave.reason}</div>
+        
+                    {leave.status !== "Pending" && (
+                      <div className={leave.status === "Accepted" ? styles.accept : styles.decline}>
+                        <strong>{leave.status}</strong>
+                      </div>
+                    )}
+        
+                    {/* ✅ Render buttons for PENDING leaves */}
+                    {leave.status === "Pending" && (
+                      <div className={styles.leavebtn}>
+                        <button type="button" className={styles.btns} onClick={() => handleLeaveUpdate(leave.id, "Accepted")}>
+                          Accept
+                        </button>
+                        <button type="button" className={styles.btns} onClick={() => handleLeaveUpdate(leave.id, "Declined")}>
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </form>
-
-
         );
       case 3:
         return (

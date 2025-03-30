@@ -167,6 +167,7 @@ const UserProfile = () => {
         // If declined, just update status
         await updateDoc(swapRef, { status: "Declined" });
         alert("Swap request declined!");
+        forceReload();
       }
     } catch (error) {
       console.error(`Error updating swap request: ${error}`);

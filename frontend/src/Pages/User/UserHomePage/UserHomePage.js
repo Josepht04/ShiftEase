@@ -204,22 +204,28 @@ const UserHomePage = () => {
           </div>
 
           <div className={styles.boxesRow}>
-            {days.map((day) => (
-              <div
-                key={day.dateString}
-                className={`${styles.box} ${day.day === "Sunday" || !shifts[day.dateString] ? styles.sundayHighlight : ""}
-                            ${day.dateString === currentdate.toISOString().split("T")[0] ? styles.todayHighlight : ""}`}
-              >
-                <div className={styles.shift}>
-                  {shifts?.[day.dateString]?.join(", ") || "Off Duty"}
-                  <span className={styles.date}>{day.date}</span>
-                  <div className={styles.tooltip}>
-                    This is {day.day} <br /> {day.date}
-                    <sup>th</sup> {day.month} {day.year}
+            {days.map((day) => {
+              const previousDay = new Date(day.dateString);
+              previousDay.setDate(previousDay.getDate() - 1);
+              const previousDateString = previousDay.toISOString().split("T")[0];
+
+              return (
+                <div
+                  key={day.dateString}
+                  className={`${styles.box} ${day.day === "Sunday" || !shifts[previousDateString] ? styles.sundayHighlight : ""} 
+                    ${previousDateString === currentdate.toISOString().split("T")[0] ? styles.todayHighlight : ""}`}
+                >
+                  <div className={styles.shift}>
+                    {shifts?.[previousDateString]?.join(", ") || "Off Duty"}
+                    <span className={styles.date}>{day.date}</span>
+                    <div className={styles.tooltip}>
+                      This is {day.day} <br /> {day.date}
+                      <sup>th</sup> {day.month} {day.year}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : (
@@ -228,7 +234,7 @@ const UserHomePage = () => {
           <div className={styles.monthGrid}>
             {days.map((day) => (
               <div key={day.date}
-              className={`${styles.box} ${day.day === "Sunday" || !shifts[day.dateString] ? styles.sundayHighlight : ""}
+                className={`${styles.box} ${day.day === "Sunday" || !shifts[day.dateString] ? styles.sundayHighlight : ""}
               ${day.dateString === currentdate.toISOString().split("T")[0] ? styles.todayHighlight : ""}`}>
                 {shifts?.[day.dateString]?.join(", ") || "Off Duty"}
                 <span className={styles.date}>{day.date}</span>
@@ -374,15 +380,19 @@ const UserHomePage = () => {
                 return;
               }
 
-              const selected = new Date(selectedDate);
+              let selected = new Date(selectedDate);
+              selected.setDate(selected.getDate() - 1); // Subtract 1 day
+              let newselected = selected.toISOString().split("T")[0];
+              console.log(newselected);
+              console.log(selectedDate);
               const currentDate = new Date();
               currentDate.setHours(0, 0, 0, 0);  // Set current date to midnight for comparison
               selected.setHours(0, 0, 0, 0);    // Set selected date to midnight for comparison
 
-              if (selected.getTime() <= currentDate.getTime()) { // Compare dates using getTime()
-                alert("Leave requests must be made at least 1 day in advance.");
-                return;
-              }
+              // if (selected.getTime() <= currentDate.getTime()) { // Compare dates using getTime()
+              //   alert("Leave requests must be made at least 1 day in advance.");
+              //   return;
+              // }
 
               const reason = e.target.reason.value;
 
@@ -391,7 +401,7 @@ const UserHomePage = () => {
 
                 await addDoc(leavesRef, {
                   userId: currentUser.uid,
-                  date: selectedDate,
+                  date: newselected,
                   reason: reason || "No reason provided",
                   status: "Pending",
                 });
