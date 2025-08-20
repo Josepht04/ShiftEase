@@ -25,4 +25,5 @@ Extract the Zip file and run the following Command :
 npm start
 ```
 
-
+## Note
+Create a ".env" file to add environmental variables (API key,....)
