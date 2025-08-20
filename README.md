@@ -1,5 +1,5 @@
 # ShiftEase
-a smart Employee management System
+    a smart Employee management System
 
 
 ## Basic Details
@@ -24,6 +24,23 @@ Extract the Zip file and run the following Command :
 ```
 npm start
 ```
+## Login Details
+### Admin
+  mailId1 : admin1@gmail.com
+  Password1 :admin@admin
+
+  mailId2 : admin2@gmail.com
+  Password2 :admin@admin
+
+  
+### User
+  mailId1 : user1@gmail.com
+  Password1 :admin@admin
+
+  mailId2 : user2@gmail.com
+  Password2 :admin@admin
 
 ## Note
 Create a ".env" file to add environmental variables (API key,....)
+
+
