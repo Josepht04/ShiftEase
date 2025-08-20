@@ -21,6 +21,8 @@ Google Firebase
 
 ## Run
 Extract the Zip file and run the following Command :
-``` npm start
+```
+npm start
+```
 
 
