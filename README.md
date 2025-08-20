@@ -17,8 +17,6 @@ React Js
 Node Js  
 Google Firebase
 
-### Implementation
-
 ## Run
 Extract the Zip file and run the following Command :
 ```
