@@ -35,12 +35,21 @@ npm start
   
 ### User
   mailId1 : user1@gmail.com
-  Password1 :admin@admin
+  Password1 : 12345678
 
   mailId2 : user2@gmail.com
-  Password2 :admin@admin
+  Password2 : 12345678
 
 ## Note
 Create a ".env" file to add environmental variables (API key,....)
+```
+REACT_APP_API_KEY=your_apikey
+REACT_APP_AUTH_DOMAIN=your_apikey
+REACT_APP_PROJECT_ID=your_apikey
+REACT_APP_STORAGE_BUCKET=your_apikey
+REACT_APP_MESSAGING_SENDER_ID=your_apikey
+REACT_APP_APP_ID=your_apikey
+REACT_APP_MEASUREMENT_ID=your_apikey
+```
 
 
