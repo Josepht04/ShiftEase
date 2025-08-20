@@ -1,5 +1,5 @@
 # ShiftEase
-    a smart Employee management System
+a smart Employee management System
 
 
 ## Basic Details
